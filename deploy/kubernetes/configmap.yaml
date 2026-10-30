@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: synmon-config
+  namespace: synmon
+  labels:
+    app.kubernetes.io/name: synmon
+    app.kubernetes.io/component: monitor
+data:
+  tests.yaml: |
+    # Define your synthetic tests here.
+    # Environment variables (${VAR}) are expanded at runtime.
+    tests:
+      - id: synthetic-health-check
+        name: "Health Check"
+        method: GET
+        url: "${TARGET_BASE_URL}/health"
+        headers:
+          Content-Type: application/json
+        specs:
+          - selector: 'span[name = "GET /health"]'
+            assertions:
+              - "attr:tracetest.selected_spans.count > 0"

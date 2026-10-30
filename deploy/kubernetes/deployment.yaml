@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synmon
+  namespace: synmon
+  labels:
+    app.kubernetes.io/name: synmon
+    app.kubernetes.io/component: monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: synmon
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: synmon
+        app.kubernetes.io/component: monitor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "2112"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: synmon
+          image: synmon:latest  # Replace with your registry/tag
+          ports:
+            - name: metrics
+              containerPort: 2112
+              protocol: TCP
+          env:
+            - name: TRACETEST_API_ENDPOINT
+              value: "http://tracetest.synmon.svc.cluster.local:11633"
+            - name: TEST_INTERVAL
+              value: "5m"
+            - name: TESTS_FILE
+              value: "/etc/synmon/tests.yaml"
+            - name: LOG_LEVEL
+              value: "info"
+            # Add secrets via envFrom or individual valueFrom references:
+            # - name: AUTH_TOKEN
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: synmon-secrets
+            #       key: auth-token
+            # - name: TARGET_BASE_URL
+            #   value: "https://api.example.com"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/synmon
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: synmon-config

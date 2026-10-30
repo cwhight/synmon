@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  tracetest:
+    image: kubeshop/tracetest:v1.7.1
+    ports:
+      - "11633:11633"  # Tracetest API/UI
+      - "4317:4317"    # OTLP gRPC receiver
+    environment:
+      TRACETEST_DEV: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tracetest
+      POSTGRES_PASSWORD: tracetest
+      POSTGRES_DB: tracetest
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracetest"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  synmon:
+    build: .
+    environment:
+      TRACETEST_API_ENDPOINT: http://tracetest:11633
+      TEST_INTERVAL: 30s
+      TESTS_FILE: /etc/synmon/tests.yaml
+      LOG_LEVEL: debug
+    ports:
+      - "2112:2112"    # Prometheus metrics
+    depends_on:
+      - tracetest
+    volumes:
+      - ./examples/tests.yaml:/etc/synmon/tests.yaml:ro
+
+  # Optional: Prometheus for local metrics collection
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./examples/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - synmon
+
+volumes:
+  pgdata:

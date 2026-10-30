@@ -1,0 +1,58 @@
+# Example test definitions for synmon.
+#
+# Environment variables are expanded in this file using ${VAR} syntax.
+# This allows you to inject secrets, endpoints, and auth tokens at runtime.
+#
+# Each test defines:
+#   - id:      Unique identifier used in Tracetest and Prometheus labels
+#   - name:    Human-readable name
+#   - method:  HTTP method (GET, POST, PUT, etc.)
+#   - url:     Target URL (use env vars for dynamic endpoints)
+#   - body:    Optional request body (JSON string)
+#   - headers: Optional map of request headers
+#   - specs:   Span selectors and assertions to validate the trace
+#
+# Assertions use Tracetest's span selector syntax:
+#   https://docs.tracetest.io/concepts/selectors
+
+tests:
+  - id: synthetic-health-check
+    name: "Health Check"
+    method: GET
+    url: "${TARGET_BASE_URL}/health"
+    headers:
+      Content-Type: application/json
+    specs:
+      - selector: 'span[name = "GET /health"]'
+        assertions:
+          - "attr:tracetest.selected_spans.count > 0"
+
+  - id: synthetic-list-items
+    name: "List Items"
+    method: GET
+    url: "${TARGET_BASE_URL}/api/v1/items"
+    headers:
+      Content-Type: application/json
+      Authorization: "Bearer ${AUTH_TOKEN}"
+    specs:
+      - selector: 'span[name = "GET /api/v1/items"]'
+        assertions:
+          - "attr:tracetest.selected_spans.count > 0"
+          - "attr:http.status_code = 200"
+
+  - id: synthetic-create-item
+    name: "Create Item"
+    method: POST
+    url: "${TARGET_BASE_URL}/api/v1/items"
+    body: '{"name": "synmon-test-item", "description": "Created by synthetic monitor"}'
+    headers:
+      Content-Type: application/json
+      Authorization: "Bearer ${AUTH_TOKEN}"
+    specs:
+      - selector: 'span[name = "POST /api/v1/items"]'
+        assertions:
+          - "attr:tracetest.selected_spans.count > 0"
+          - "attr:http.status_code = 201"
+      - selector: 'span[name = "items.repository/Create"]'
+        assertions:
+          - "attr:tracetest.selected_spans.count > 0"

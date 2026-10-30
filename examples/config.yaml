@@ -1,0 +1,17 @@
+# Example configuration file for synmon.
+#
+# Use via: CONFIG_FILE=config.yaml synmon
+# Environment variables always override values from this file.
+
+tracetest_api_endpoint: http://localhost:11633
+test_interval: 5m
+metrics_addr: ":2112"
+test_run_timeout: 60s
+test_poll_interval: 2s
+tests_file: tests.yaml
+log_level: info
+
+# Global auth headers added to every test request.
+# Useful for API keys or service tokens that apply to all tests.
+auth_headers:
+  X-Api-Key: "${API_KEY}"

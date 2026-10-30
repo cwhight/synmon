@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: synmon
+  labels:
+    app.kubernetes.io/name: synmon
+    app.kubernetes.io/part-of: synthetic-monitoring
